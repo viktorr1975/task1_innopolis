@@ -1,5 +1,3 @@
-#задачи:
-#тестирование на нагрузку, как-то препод показывал график
 
 
 import uvicorn
@@ -12,6 +10,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import random
 import datetime
+from dateutil.relativedelta import *
 
 DB_USER = "postgres"
 DB_NAME = "study"
@@ -154,10 +153,13 @@ async def create_note(sale: SaleIn):
 
 @app.get("/stores/top")  #обрабатывает GET-запрос на получение данных по топ 10 самых доходных магазинов за месяц (id + адрес + суммарная выручка)
 async def read_top10stores():
-    query = 'SELECT store.id as store_id, address, SUM(price) as income FROM store JOIN sales ON store.id = sales.store_id ' \
-            'JOIN items ON items.id = sales.item_id ' \
-            'GROUP BY store_id ' \
-            'LIMIT 10 '
+    today = datetime.datetime.now()
+    month_ago = today - relativedelta(months=1)
+    query = f'''SELECT store.id as store_id, address, SUM(price) as income FROM store JOIN sales ON store.id = sales.store_id
+            JOIN items ON items.id = sales.item_id
+            WHERE sale_time BETWEEN '{month_ago}' AND '{today}'
+            GROUP BY store_id
+            LIMIT 10'''
     return await database.fetch_all(query=query)
 
 @app.get("/items/top/")  #обрабатывает GET-запрос на получение данных по топ 10 самых продаваемых товаров (id + наименование + количество проданных товаров)
